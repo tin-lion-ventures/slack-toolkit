@@ -54,8 +54,9 @@ class SlackClient:
         method_name: str,
         params: Optional[dict] = None,
         token_type: str = "bot",
+        body_format: str = "json",
     ) -> dict:
-        """POST to https://slack.com/api/{method_name} with JSON body.
+        """POST to https://slack.com/api/{method_name}.
 
         Handles rate limiting with exponential backoff + jitter.
         Returns the parsed JSON response dict.
@@ -64,12 +65,29 @@ class SlackClient:
 
         url = f"{self.BASE_URL}{method_name}"
         token = self._get_token(token_type)
+        if body_format == "json":
+            content_type = "application/json; charset=utf-8"
+            data = json.dumps(params or {}).encode("utf-8")
+        elif body_format == "form":
+            content_type = "application/x-www-form-urlencoded"
+            form_params = {}
+            for key, value in (params or {}).items():
+                if value is None:
+                    continue
+                if isinstance(value, (dict, list)):
+                    form_params[key] = json.dumps(value, separators=(",", ":"))
+                elif isinstance(value, bool):
+                    form_params[key] = "true" if value else "false"
+                else:
+                    form_params[key] = value
+            data = urllib.parse.urlencode(form_params).encode("utf-8")
+        else:
+            raise ValueError(f"Unsupported request body format: {body_format}")
+
         headers = {
             "Authorization": f"Bearer {token}",
-            "Content-Type": "application/json; charset=utf-8",
+            "Content-Type": content_type,
         }
-
-        data = json.dumps(params or {}).encode("utf-8")
 
         for attempt in range(_MAX_RETRIES + 1):
             req = urllib.request.Request(url, data=data, headers=headers, method="POST")
@@ -115,13 +133,19 @@ class SlackClient:
         method_name: str,
         params: Optional[dict] = None,
         token_type: str = "bot",
+        body_format: str = "json",
     ) -> dict:
         """Call a Slack API method and verify ok=true.
 
         Returns the full response dict on success.
         Raises SlackApiError if ok is false.
         """
-        resp = self._request(method_name, params=params, token_type=token_type)
+        resp = self._request(
+            method_name,
+            params=params,
+            token_type=token_type,
+            body_format=body_format,
+        )
 
         if not resp.get("ok"):
             raise SlackApiError(
@@ -130,6 +154,20 @@ class SlackClient:
             )
 
         return resp
+
+    def call_form(
+        self,
+        method_name: str,
+        params: Optional[dict] = None,
+        token_type: str = "bot",
+    ) -> dict:
+        """Call a Slack API method using application/x-www-form-urlencoded."""
+        return self.call(
+            method_name,
+            params=params,
+            token_type=token_type,
+            body_format="form",
+        )
 
     def paginate(
         self,
@@ -196,15 +234,29 @@ class SlackClient:
     ) -> None:
         """Upload file data to a pre-signed URL (step 2 of files.uploadV2).
 
-        This uses a raw POST with the file bytes as body.
+        The upload URL is already authorized. Do not send Slack bearer auth here.
         """
-        token = self._get_token(token_type)
+        safe_filename = filename.replace("\\", "\\\\").replace('"', '\\"')
+        boundary = f"----slack-cli-upload-{int(time.time() * 1000)}"
+        body = b"".join(
+            [
+                f"--{boundary}\r\n".encode("utf-8"),
+                (
+                    'Content-Disposition: form-data; name="filename"; '
+                    f'filename="{safe_filename}"\r\n'
+                ).encode("utf-8"),
+                b"Content-Type: application/octet-stream\r\n\r\n",
+                file_data,
+                b"\r\n",
+                f"--{boundary}--\r\n".encode("utf-8"),
+            ]
+        )
         headers = {
-            "Authorization": f"Bearer {token}",
-            "Content-Type": "application/octet-stream",
+            "Content-Type": f"multipart/form-data; boundary={boundary}",
+            "Content-Length": str(len(body)),
         }
 
-        req = urllib.request.Request(url, data=file_data, headers=headers, method="POST")
+        req = urllib.request.Request(url, data=body, headers=headers, method="POST")
 
         try:
             with urllib.request.urlopen(req, context=self._ctx, timeout=60) as resp:

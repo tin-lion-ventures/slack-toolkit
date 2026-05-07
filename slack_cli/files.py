@@ -42,12 +42,12 @@ def upload_file(
         "filename": filename,
         "length": file_size,
     }
-    resp1 = client.call("files.getUploadURLExternal", params=step1_params)
+    resp1 = client.call_form("files.getUploadURLExternal", params=step1_params)
     upload_url = resp1.get("upload_url", "")
     file_id = resp1.get("file_id", "")
 
-    if not upload_url:
-        print("Error: No upload URL returned.", file=sys.stderr)
+    if not upload_url or not file_id:
+        print("Error: No upload URL or file ID returned.", file=sys.stderr)
         sys.exit(1)
 
     # Step 2: Upload file data to the pre-signed URL
@@ -61,13 +61,15 @@ def upload_file(
         "files": [{"id": file_id, "title": title}],
     }
     if channels:
-        step3_params["channel_id"] = channels.split(",")[0]  # Primary channel
+        primary_channel = channels.split(",")[0].strip()
+        if primary_channel:
+            step3_params["channel_id"] = primary_channel
     if initial_comment:
         step3_params["initial_comment"] = initial_comment
     if thread_ts:
         step3_params["thread_ts"] = thread_ts
 
-    resp3 = client.call("files.completeUploadExternal", params=step3_params)
+    resp3 = client.call_form("files.completeUploadExternal", params=step3_params)
 
     if as_json:
         print(json.dumps(resp3, indent=2))
