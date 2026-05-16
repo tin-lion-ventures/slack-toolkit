@@ -13,19 +13,19 @@ import pytest
 # ---- version ----
 
 def test_version():
-    """slack-cli --version returns 0.2.3."""
+    """slack-cli __version__ matches Tin Lion fork."""
     from slack_cli import __version__
-    assert __version__ == "0.2.3"
+    assert __version__ == "0.2.3+tinlion.1"
 
 
 def test_version_cli():
-    """CLI --version flag outputs 0.2.3."""
+    """CLI --version flag outputs the Tin Lion fork version."""
     result = subprocess.run(
         [sys.executable, "-m", "slack_cli.cli", "--version"],
         capture_output=True,
         text=True,
     )
-    assert "0.2.3" in result.stdout + result.stderr
+    assert "0.2.3+tinlion.1" in result.stdout + result.stderr
     assert result.returncode == 0
 
 

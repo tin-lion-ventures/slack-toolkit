@@ -6,6 +6,35 @@ Built for AI agents, automation scripts, and developers who need a scriptable Sl
 
 ---
 
+## About this fork
+
+This is a fork of [`8Dvibes/slack-toolkit`](https://github.com/8Dvibes/slack-toolkit) maintained by [Tin Lion Ventures](https://github.com/tin-lion-ventures). The single divergence from upstream is in `slack_cli/config.py`: bot tokens (and user tokens) can be resolved from per-profile environment variables — `SLACK_<PROFILE_UPPER>_BOT_TOKEN` — at invocation time, with priority over both the global environment variable (`SLACK_BOT_TOKEN`, upstream-supported) and the profile-file field (`bot_token` in `~/.slack-cli.json`, also upstream-supported).
+
+This enables a no-disk-persistence credential pattern: tokens live in a secret manager (we use 1Password Teams via the `op` CLI), and each invocation reads the value into an environment variable scoped to that command:
+
+```powershell
+$env:SLACK_SHIP_BOT_TOKEN = (op read "op://Superesque - Agents/ship-slack-bot-token/credential")
+slack-cli -p ship api auth.test
+Remove-Item env:SLACK_SHIP_BOT_TOKEN
+```
+
+Disk persistence (`slack-cli config set-profile <name> --bot-token ...`) still works for users who want the upstream behaviour. The fork is strictly additive — no upstream code path is removed.
+
+Install:
+
+```bash
+pip install git+https://github.com/tin-lion-ventures/slack-toolkit.git
+```
+
+Verify install:
+
+```bash
+slack-cli --version
+# slack-cli 0.2.3+tinlion.1
+```
+
+---
+
 ## Quick Start
 
 **1. Install**

@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.2.3+tinlion.1] — 2026-05-16
+
+Tin Lion Ventures fork — `tin-lion-ventures/slack-toolkit`.
+
+### Added
+- Per-profile environment-variable resolution for bot and user tokens in `slack_cli/config.py`. New environment-variable names follow the pattern `SLACK_<PROFILE_UPPER>_BOT_TOKEN` and `SLACK_<PROFILE_UPPER>_USER_TOKEN`. The per-profile variable takes priority over the existing global `SLACK_BOT_TOKEN` (preserved) and the profile-file `bot_token` field (also preserved).
+- `require_profile()` error message now names the expected per-profile variable and gives an `op read` invocation example for operators using a secret manager.
+- Seven unit tests in `tests/test_per_profile_env.py` covering the priority order and the naming-guidance error path.
+
+### Changed
+- Version string suffixed `+tinlion.1` (PEP 440 local-version) so fork installs are identifiable from `slack-cli --version` and PyPI upgrades do not silently overwrite the fork.
+
+### Rationale
+Enables no-disk-persistence credential setups — tokens live in a secret manager (1Password Teams via the `op` CLI in our case) and are read into the process at invocation time rather than persisted to `~/.slack-cli.json`. Upstream behaviour is preserved end-to-end; users who prefer the disk-persistence pattern see no change.
+
 ## [0.2.3] - 2026-04-16
 
 ### Changed
