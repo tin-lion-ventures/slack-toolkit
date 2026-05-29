@@ -81,7 +81,9 @@ def lookup_by_email(
     as_json: bool = False,
 ) -> None:
     """Look up a user by email address."""
-    resp = client.call("users.lookupByEmail", params={"email": email})
+    # users.lookupByEmail ignores a JSON body and only reads form-encoded params;
+    # calling with JSON yields invalid_arguments ("missing required field: email").
+    resp = client.call_form("users.lookupByEmail", params={"email": email})
     u = resp.get("user", {})
 
     if as_json:
