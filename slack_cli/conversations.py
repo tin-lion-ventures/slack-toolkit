@@ -131,7 +131,10 @@ def get_replies(
     """Get replies in a thread."""
     params = {"channel": channel, "ts": ts, "limit": min(limit, 1000)}
 
-    resp = client.call("conversations.replies", params=params)
+    # Slack's conversations.replies ignores a JSON request body and only reads
+    # form-encoded params; calling with JSON yields invalid_arguments
+    # ("missing required field: channel/ts"). Force form encoding.
+    resp = client.call_form("conversations.replies", params=params)
     messages = resp.get("messages", [])
 
     if as_json:
