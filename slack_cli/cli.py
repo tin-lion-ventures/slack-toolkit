@@ -648,6 +648,8 @@ def cmd_api(args):
         params=params,
         token_type=args.token_type,
         as_json=True,  # Raw API always outputs JSON
+        paginate=args.paginate,
+        body_format=args.body_format,
     )
 
 
@@ -1317,6 +1319,22 @@ def build_parser() -> argparse.ArgumentParser:
         choices=["bot", "user", "auto"],
         default="bot",
         help="Which token to use",
+    )
+    api_p.add_argument(
+        "--paginate",
+        "--page-all",
+        action="store_true",
+        dest="paginate",
+        help="Follow cursor pagination and merge all pages into one response",
+    )
+    api_p.add_argument(
+        "--body-format",
+        choices=["form", "json"],
+        default="form",
+        help=(
+            "Request body encoding. Default form is accepted by every method; "
+            "json is only honored by some write methods"
+        ),
     )
     api_p.set_defaults(func=cmd_api)
 

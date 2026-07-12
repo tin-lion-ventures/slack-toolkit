@@ -577,12 +577,19 @@ Raw passthrough to any Slack API method. The escape hatch for anything not cover
 slack-cli api auth.test
 slack-cli api conversations.list --params '{"types": "public_channel", "limit": 10}'
 
+# Follow cursor pagination and merge all pages into one response
+slack-cli api conversations.list \
+  --params '{"types": "public_channel,private_channel", "exclude_archived": true}' \
+  --paginate
+
 # Methods that need a user token
 slack-cli api search.messages --params '{"query": "incident", "count": 20}' --token-type user
 
 # Always returns full JSON response
 slack-cli api emoji.list --json
 ```
+
+`--params` takes JSON on the command line, but requests are sent form-encoded (`application/x-www-form-urlencoded`) -- every Web API method accepts that, while GET-style methods like `conversations.list` silently ignore JSON bodies. Pass `--body-format json` only if you specifically need a JSON body on a method documented to support it.
 
 ---
 
@@ -777,7 +784,8 @@ slack_cli/
 - **Catalog pattern.** The method catalog decouples "what methods exist" from the CLI release cycle. You can update the catalog without upgrading the package.
 - **Skill bundling.** Skills ship inside the Python wheel as `package-data`. One install command, one skills-install command -- nothing to manually copy.
 - **Profile isolation.** Each workspace is a named profile. Credentials are stored at `~/.slack-cli.json` (mode 600). Env vars override config for CI.
-- **Auto-pagination.** The `client.paginate()` method handles cursor-based pagination automatically. The raw `api` passthrough does not paginate -- useful when you need explicit control.
+- **Form encoding by default.** Every request is sent as `application/x-www-form-urlencoded`, which all 306 Web API methods accept. JSON bodies are only honored by a subset of write methods -- GET-style methods (`conversations.list`, `users.list`, ...) silently drop them, losing params like `types` and `cursor` with no error. Dict/list values (blocks, attachments) are JSON-serialized into their form field per Slack's convention.
+- **Auto-pagination.** The `client.paginate()` method handles cursor-based pagination automatically. The raw `api` passthrough paginates with `--paginate` / `--page-all`, or single-page by default when you need explicit cursor control.
 - **Rate-limit handling.** The HTTP client retries up to 5 times on 429 responses, respecting the `Retry-After` header with exponential backoff and jitter.
 
 ---

@@ -54,9 +54,16 @@ class SlackClient:
         method_name: str,
         params: Optional[dict] = None,
         token_type: str = "bot",
-        body_format: str = "json",
+        body_format: str = "form",
     ) -> dict:
         """POST to https://slack.com/api/{method_name}.
+
+        Defaults to application/x-www-form-urlencoded: every Web API method
+        accepts it, while only a documented subset of write methods accepts
+        application/json. GET-style methods (conversations.list, users.list,
+        ...) silently IGNORE a JSON body -- params like `types` and `cursor`
+        are dropped with no error. Dict/list values are JSON-serialized into
+        their form field, which Slack accepts (e.g. blocks, attachments).
 
         Handles rate limiting with exponential backoff + jitter.
         Returns the parsed JSON response dict.
@@ -133,9 +140,12 @@ class SlackClient:
         method_name: str,
         params: Optional[dict] = None,
         token_type: str = "bot",
-        body_format: str = "json",
+        body_format: str = "form",
     ) -> dict:
         """Call a Slack API method and verify ok=true.
+
+        Form-encoded by default (see _request). Pass body_format="json" only
+        for methods documented to accept JSON bodies.
 
         Returns the full response dict on success.
         Raises SlackApiError if ok is false.
@@ -161,7 +171,10 @@ class SlackClient:
         params: Optional[dict] = None,
         token_type: str = "bot",
     ) -> dict:
-        """Call a Slack API method using application/x-www-form-urlencoded."""
+        """Call a Slack API method using application/x-www-form-urlencoded.
+
+        Kept for back-compat; form encoding is now the default for call().
+        """
         return self.call(
             method_name,
             params=params,

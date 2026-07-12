@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.3.0] - 2026-07-11
+
+### Fixed
+
+- **All API calls now default to form encoding (`application/x-www-form-urlencoded`) instead of JSON bodies.** GET-style Web API methods (`conversations.list`, `users.list`, `conversations.history`, ...) only read form-encoded params and silently ignore a JSON body -- `types`, `limit`, `exclude_archived`, and `cursor` were all dropped with no error, so `slack-cli api conversations.list` and `slack-cli conversations list` always returned the default public-only first page. This hid every private channel (real-world miss: #agent-native-os on 2026-07-11). Form encoding is accepted by every Web API method; dict/list params (blocks, attachments) are JSON-serialized into their form field per Slack's documented convention.
+- Repaired Slack file upload V2 flow (unreleased fix carried on main)
+- `conversations.replies` and `users.lookupByEmail` form-encoding fixes are now subsumed by the form-by-default client
+
+### Added
+
+- `slack-cli api --paginate` (alias `--page-all`): the raw passthrough now follows `response_metadata.next_cursor` until exhausted and merges all pages into one response, using the catalog's `response_key` to locate the paginated list
+- `slack-cli api --body-format {form,json}`: explicit escape hatch for methods where a JSON body is specifically desired (default: form)
+- Offline regression tests (`tests/test_form_encoding.py`) with a fake Slack that mimics the real silent-drop behavior: JSON bodies are ignored, and a request with `types=private_channel` must surface a private channel
+
 ## [0.2.3] - 2026-04-16
 
 ### Changed
