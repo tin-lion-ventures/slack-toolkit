@@ -502,6 +502,12 @@ def cmd_files_info(args):
     get_file_info(client, file_id=args.file_id, as_json=args.json)
 
 
+def cmd_files_download(args):
+    from .files import download_file
+    client = _build_client(args)
+    download_file(client, file_id=args.file_id, output=args.output)
+
+
 def cmd_files_delete(args):
     from .files import delete_file
     client = _build_client(args)
@@ -648,6 +654,8 @@ def cmd_api(args):
         params=params,
         token_type=args.token_type,
         as_json=True,  # Raw API always outputs JSON
+        paginate=args.paginate,
+        body_format=args.body_format,
     )
 
 
@@ -1228,6 +1236,17 @@ def build_parser() -> argparse.ArgumentParser:
     fi.add_argument("file_id", help="File ID")
     fi.set_defaults(func=cmd_files_info)
 
+    fdl = files_sub.add_parser(
+        "download",
+        aliases=["get"],
+        help="Download a private file (alias: get)",
+    )
+    fdl.add_argument("file_id", help="File ID")
+    fdl.add_argument(
+        "--output", "-o", help="Destination path (default: Slack filename in cwd)"
+    )
+    fdl.set_defaults(func=cmd_files_download)
+
     fd = files_sub.add_parser("delete", help="Delete a file")
     fd.add_argument("file_id", help="File ID")
     fd.set_defaults(func=cmd_files_delete)
@@ -1317,6 +1336,22 @@ def build_parser() -> argparse.ArgumentParser:
         choices=["bot", "user", "auto"],
         default="bot",
         help="Which token to use",
+    )
+    api_p.add_argument(
+        "--paginate",
+        "--page-all",
+        action="store_true",
+        dest="paginate",
+        help="Follow cursor pagination and merge all pages into one response",
+    )
+    api_p.add_argument(
+        "--body-format",
+        choices=["form", "json"],
+        default="form",
+        help=(
+            "Request body encoding. Default form is accepted by every method; "
+            "json is only honored by some write methods"
+        ),
     )
     api_p.set_defaults(func=cmd_api)
 

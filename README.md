@@ -30,7 +30,7 @@ Verify install:
 
 ```bash
 slack-cli --version
-# slack-cli 0.2.3+tinlion.1
+# slack-cli 0.3.1+tinlion.1
 ```
 
 ---
@@ -360,7 +360,7 @@ slack-cli search all "kubernetes"
 
 ### `files`
 
-Upload, list, and manage files.
+Upload, download, list, and manage files.
 
 ```bash
 # Upload a file
@@ -377,9 +377,17 @@ slack-cli files list --types images
 # Get file info
 slack-cli files info F0FILEID
 
+# Download a private file using its Slack filename in the current directory
+slack-cli files download F0FILEID
+
+# Choose the destination path (`files get` is an alias)
+slack-cli files get F0FILEID --output /tmp/attachment.png
+
 # Delete a file
 slack-cli files delete F0FILEID
 ```
+
+Private downloads call `files.info`, prefer `url_private_download` (falling back to `url_private`), and stream the response with bot bearer authentication. The bot token needs the `files:read` scope.
 
 ---
 
@@ -606,12 +614,19 @@ Raw passthrough to any Slack API method. The escape hatch for anything not cover
 slack-cli api auth.test
 slack-cli api conversations.list --params '{"types": "public_channel", "limit": 10}'
 
+# Follow cursor pagination and merge all pages into one response
+slack-cli api conversations.list \
+  --params '{"types": "public_channel,private_channel", "exclude_archived": true}' \
+  --paginate
+
 # Methods that need a user token
 slack-cli api search.messages --params '{"query": "incident", "count": 20}' --token-type user
 
 # Always returns full JSON response
 slack-cli api emoji.list --json
 ```
+
+`--params` takes JSON on the command line, but requests are sent form-encoded (`application/x-www-form-urlencoded`) -- every Web API method accepts that, while GET-style methods like `conversations.list` silently ignore JSON bodies. Pass `--body-format json` only if you specifically need a JSON body on a method documented to support it.
 
 ---
 
@@ -646,7 +661,7 @@ slack-cli skills doctor
 | `slack-thread` | `/slack-thread` | Read and reply to Slack threads with full conversation context |
 | `slack-schedule` | `/slack-schedule` | Schedule messages for future delivery with human-readable time conversion |
 | `slack-search` | `/slack-search` | Full-text message and file search using Slack search operators |
-| `slack-file-upload` | `/slack-file-upload` | Upload files using the V2 two-step flow with channel sharing |
+| `slack-file-upload` | `/slack-file-upload` | Upload files and download Slack attachments for local inspection |
 | `slack-reactions` | `/slack-reactions` | Add/remove reactions, run emoji polls, audit reaction patterns |
 | `slack-channel-create` | `/slack-channel-create` | Provision a channel end-to-end: name, topic, members, bookmarks |
 | `slack-channel-info` | `/slack-channel-info` | Deep dive on a channel: members, history, pins, bookmarks, purpose |
@@ -806,7 +821,8 @@ slack_cli/
 - **Catalog pattern.** The method catalog decouples "what methods exist" from the CLI release cycle. You can update the catalog without upgrading the package.
 - **Skill bundling.** Skills ship inside the Python wheel as `package-data`. One install command, one skills-install command -- nothing to manually copy.
 - **Profile isolation.** Each workspace is a named profile. Credentials are stored at `~/.slack-cli.json` (mode 600). Env vars override config for CI.
-- **Auto-pagination.** The `client.paginate()` method handles cursor-based pagination automatically. The raw `api` passthrough does not paginate -- useful when you need explicit control.
+- **Form encoding by default.** Every request is sent as `application/x-www-form-urlencoded`, which all 306 Web API methods accept. JSON bodies are only honored by a subset of write methods -- GET-style methods (`conversations.list`, `users.list`, ...) silently drop them, losing params like `types` and `cursor` with no error. Dict/list values (blocks, attachments) are JSON-serialized into their form field per Slack's convention.
+- **Auto-pagination.** The `client.paginate()` method handles cursor-based pagination automatically. The raw `api` passthrough paginates with `--paginate` / `--page-all`, or single-page by default when you need explicit cursor control.
 - **Rate-limit handling.** The HTTP client retries up to 5 times on 429 responses, respecting the `Retry-After` header with exponential backoff and jitter.
 
 ---
