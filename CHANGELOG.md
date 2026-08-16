@@ -1,5 +1,39 @@
 # Changelog
 
+## [0.3.1+tinlion.1] — 2026-08-16
+
+Tin Lion Ventures fork — `tin-lion-ventures/slack-toolkit`.
+
+### Changed
+- Synced with upstream `8Dvibes/slack-toolkit` main (v0.3.1): form encoding by default for all API calls, `api --paginate` cursor pagination, authenticated `files download`, and the OpenWiki documentation set. The fork's per-profile env-var token resolution (below, 0.2.3+tinlion.1) is unchanged — upstream did not touch `slack_cli/config.py`, and all fork behaviour carries forward.
+- Version string re-suffixed `+tinlion.1` on top of upstream's 0.3.1.
+
+## [0.3.1] - 2026-07-15
+
+### Added
+
+- `slack-cli files download <file_id> [--output PATH]` with `files get` as an alias. The command looks up `url_private_download` through `files.info`, falls back to `url_private`, and uses the Slack filename in the current directory when `--output` is omitted.
+- Authenticated, chunked private-file downloads in `SlackClient`. Downloads send the bot bearer token without printing it, keep memory use bounded for large files, and atomically replace the destination only after a successful response.
+- Offline download tests covering bearer authentication, chunked streaming, non-200 responses, private URL fallback, default filenames, common Slack errors, and the `files get` alias.
+
+### Changed
+
+- Bundled Slack skills now direct agents to `files download` when they need to read image or document attachments and call out the required `files:read` scope.
+
+## [0.3.0] - 2026-07-11
+
+### Fixed
+
+- **All API calls now default to form encoding (`application/x-www-form-urlencoded`) instead of JSON bodies.** GET-style Web API methods (`conversations.list`, `users.list`, `conversations.history`, ...) only read form-encoded params and silently ignore a JSON body -- `types`, `limit`, `exclude_archived`, and `cursor` were all dropped with no error, so `slack-cli api conversations.list` and `slack-cli conversations list` always returned the default public-only first page. This hid every private channel (real-world miss: #agent-native-os on 2026-07-11). Form encoding is accepted by every Web API method; dict/list params (blocks, attachments) are JSON-serialized into their form field per Slack's documented convention.
+- Repaired Slack file upload V2 flow (unreleased fix carried on main)
+- `conversations.replies` and `users.lookupByEmail` form-encoding fixes are now subsumed by the form-by-default client
+
+### Added
+
+- `slack-cli api --paginate` (alias `--page-all`): the raw passthrough now follows `response_metadata.next_cursor` until exhausted and merges all pages into one response, using the catalog's `response_key` to locate the paginated list
+- `slack-cli api --body-format {form,json}`: explicit escape hatch for methods where a JSON body is specifically desired (default: form)
+- Offline regression tests (`tests/test_form_encoding.py`) with a fake Slack that mimics the real silent-drop behavior: JSON bodies are ignored, and a request with `types=private_channel` must surface a private channel
+
 ## [0.2.3+tinlion.1] — 2026-05-16
 
 Tin Lion Ventures fork — `tin-lion-ventures/slack-toolkit`.

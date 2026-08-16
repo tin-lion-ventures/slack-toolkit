@@ -15,7 +15,7 @@ import pytest
 def test_version():
     """slack-cli __version__ matches Tin Lion fork."""
     from slack_cli import __version__
-    assert __version__ == "0.2.3+tinlion.1"
+    assert __version__ == "0.3.1+tinlion.1"
 
 
 def test_version_cli():
@@ -25,7 +25,7 @@ def test_version_cli():
         capture_output=True,
         text=True,
     )
-    assert "0.2.3+tinlion.1" in result.stdout + result.stderr
+    assert "0.3.1+tinlion.1" in result.stdout + result.stderr
     assert result.returncode == 0
 
 
