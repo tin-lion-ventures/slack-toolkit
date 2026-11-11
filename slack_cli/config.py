@@ -117,6 +117,11 @@ def require_profile(profile_name: Optional[str] = None) -> dict:
         expected_env = f"SLACK_{env_safe}_BOT_TOKEN"
         print("Error: Slack bot token not configured.", file=sys.stderr)
         print(
+            "  Agents on a Ship: call slack-cli through scripts/slack/slack.sh "
+            "in the Ship repository, which reads the token from 1Password for you.",
+            file=sys.stderr,
+        )
+        print(
             f"  Expected one of (in priority order):",
             file=sys.stderr,
         )
